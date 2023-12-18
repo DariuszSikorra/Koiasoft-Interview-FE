@@ -1,0 +1,26 @@
+[
+  {
+    "label": "Boliger i alt",
+    "value": "00"
+  },
+  {
+    "label": "Småhus",
+    "value": "02"
+  },
+  {
+    "label": "Blokkleiligheter",
+    "value": "03"
+  },
+  {
+    "label": "Rekkehus",
+    "value": "04"
+  },
+  {
+    "label": "Enebolig",
+    "value": "05"
+  },
+  {
+    "label": "Leilighet",
+    "value": "06"
+  }
+]

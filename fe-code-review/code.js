@@ -1,6 +1,7 @@
 app.post('/api/extract', upload.single('file'), async (req, res) => {
     logInfo('POST /api/extract',req.body);
-    logInfo('FILE=',req.file);
+    logInfo('FILE=',req.file); 
+    // Log statements, assuming logInfo and logDebug are implemented
 
     if (req.body) {
         const file = req.file;
@@ -11,17 +12,22 @@ app.post('/api/extract', upload.single('file'), async (req, res) => {
 
         if (requestID && project && idUser && user) {
             logDebug('User with role '+user.role, user);
+            // Checking for 'ADVISOR' role or role containing 'ADVISOR'
             if (user.role === 'ADVISOR' || user.role.indexOf('ADVISOR') > -1)
                 return res.json({requestID, step: 999, status: 'DONE', message: 'Nothing to do for ADVISOR role'});
+                // 999 is a magic number, please use constant to store a value
 
             /* reset status variables */
             await db.updateStatus(requestID, 1, '');
 
             logDebug('CONFIG:', config.projects);
+            // Make sure that the config object is properly defined and contains the necessary properties and values.
             if (project === 'inkasso' && config.projects.hasOwnProperty(project) && file) {
                 const hashSum = crypto.createHash('sha256');
+                // The hashSum variable is declared twice in the code. Remove the redundant declaration.
                 const fileHash = idUser;
                 const fileName = 'fullmakt';
+                // Good job, many strings should be exported top constant variables for better code readability
                 const fileType = mime.getExtension(file.mimetype);
                 if (fileType !== 'pdf')
                     return res.status(500).json({requestID, message: 'Missing pdf file'});
@@ -30,8 +36,13 @@ app.post('/api/extract', upload.single('file'), async (req, res) => {
                 const folder = `${project}-signed/${idUser}`;
                 logDebug('FILE2=', file);
                 await uploadToGCSExact(folder, fileHash, fileName, fileType, file.mimetype, file.buffer);
+                // The code lacks comprehensive error handling. 
+                // For example, when there is an error in the uploadToGCSExact function or any asynchronous operation, 
+                // it would be helpful to catch these errors and respond with an appropriate HTTP status code and message.
                 await db.updateStatus(requestID, 4, '');
                 const ret = await db.updateUploadedDocs(idUser, requestID, fileName, fileType, file.buffer);
+                // The code generates a request key using a combination of user ID, collector ID, and timestamp.
+                // Ensure that this method of generating a request key is secure and doesn't expose any sensitive information.
                 logDebug('DB UPLOAD:', ret);
 
                 await db.updateStatus(requestID, 5, '');
@@ -62,13 +73,15 @@ app.post('/api/extract', upload.single('file'), async (req, res) => {
                     const hash = Buffer.from(`${idUser}__${idCollector}`, 'utf8').toString('base64')
 
                     if (!!(await db.setUserRequestKey(requestKey, idUser))
-                        && !!(await db.setUserCollectorRequestKey(requestKey, idUser, idCollector))) {
+                    && !!(await db.setUserCollectorRequestKey(requestKey, idUser, idCollector))) {
+                    // !! is not required in if statement, if operates exclusively on booleans
 
                         /* prepare email */
                         const sendConfig = {
                             sender: config.projects[project].email.sender,
                             replyTo: config.projects[project].email.replyTo,
                             subject: 'Email subject,
+                            // ' missing for string encasement
                             templateId: config.projects[project].email.template.collector,
                             params: {
                                 downloadUrl: `https://url.go/download?requestKey=${requestKey}&hash=${hash}`,
@@ -89,6 +102,8 @@ app.post('/api/extract', upload.single('file'), async (req, res) => {
                         /* send email */
                         const resp = await email.send(sendConfig, config.projects[project].email.apiKey);
                         logDebug('extract() resp=', resp);
+                        // Consider breaking down the logic into smaller functions, especially for email sending and updating status. 
+                        // This can make the code more readable and maintainable.
 
                         // update DB with result
                         await db.setUserCollectorRequestKeyRes(requestKey, idUser, idCollector, resp);
@@ -109,9 +124,11 @@ app.post('/api/extract', upload.single('file'), async (req, res) => {
 
                 //if (!allSent)
                 //return res.status(500).json({requestID, message: 'Failed sending email'});
+                // Some parts of the code are commented out (//if (!allSent)...).
+                // Ensure that such commented-out code is either completed or removed.
 
                 await db.updateStatus(requestID, 500, '');
-
+               
                 /* prepare summary email */
                 const summaryConfig = {
                     //bcc: [{ email: 'tomas@inkassoregisteret.com', name: 'Tomas' }],
@@ -124,6 +141,7 @@ app.post('/api/extract', upload.single('file'), async (req, res) => {
                     },
                     tags: ['summary'],
                     to: [{ email: 'tomas@upscore.no' , name: 'Tomas' }], // FIXXX: config.projects[project].email.sender
+                    // Make sure to remove unnecessary commented-out code or provide an explanation for why it's there.
                 };
                 logDebug('Summary config:', summaryConfig);
 
@@ -134,9 +152,12 @@ app.post('/api/extract', upload.single('file'), async (req, res) => {
                 await db.updateStatus(requestID, 900, '');
             }
             await db.updateStatus(requestID, 999, '');
+            // There are multiple database update operations.
+            // Ensure that these operations are performed efficiently and consider bundling them into a single transaction if possible.
             return res.json({requestID, step: 999, status: 'DONE', message: 'Done sending emails...'});
         } else
             return res.status(500).json({requestID, message: 'Missing requried input (requestID, project, file)'});
     }
     res.status(500).json({requestID: '', message: 'Missing requried input (form data)'});
 });
+// Remember to test the code thoroughly, especially in edge cases and error scenarios, to ensure robustness and reliability.
